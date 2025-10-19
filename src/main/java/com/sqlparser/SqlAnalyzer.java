@@ -11,18 +11,89 @@ import net.sf.jsqlparser.schema.Table;
 
 import java.util.*;
 
+/**
+ * Analyzes SQL SELECT statements and extracts detailed information about their structure.
+ * <p>
+ * This class uses the JSqlParser library to parse SQL queries and extract various components
+ * including tables, columns, conditions, joins, and other SQL clauses. It also generates
+ * human-readable descriptions of what the SQL query does.
+ * </p>
+ *
+ * <h2>Usage Example:</h2>
+ * <pre>
+ * SqlAnalyzer analyzer = new SqlAnalyzer();
+ * String sql = "SELECT u.name, o.total FROM users u INNER JOIN orders o ON u.id = o.user_id WHERE o.total &gt; 100";
+ * SqlAnalysisResult result = analyzer.analyze(sql);
+ * System.out.println(result.getDescription());
+ * </pre>
+ *
+ * <h2>Features:</h2>
+ * <ul>
+ *   <li>Extracts all tables and their aliases</li>
+ *   <li>Maps columns to their respective tables</li>
+ *   <li>Identifies SELECT items, WHERE conditions, and JOIN conditions</li>
+ *   <li>Processes GROUP BY, HAVING, ORDER BY, and LIMIT clauses</li>
+ *   <li>Generates natural language descriptions of queries</li>
+ * </ul>
+ *
+ * <p>
+ * <b>Note:</b> This class maintains internal state during analysis and automatically resets
+ * before each new analysis. The same instance can be safely reused for multiple analyses.
+ * </p>
+ *
+ * @author SQL Parser Team
+ * @version 1.0.0
+ * @see SqlAnalysisResult
+ * @see net.sf.jsqlparser.parser.CCJSqlParserUtil
+ */
 public class SqlAnalyzer {
 
+    /** Set of table names with their aliases (if any) found in the query. */
     private Set<String> tables = new LinkedHashSet<>();
+
+    /** Map of table names to their columns referenced in the query. */
     private Map<String, Set<String>> tableColumns = new LinkedHashMap<>();
+
+    /** List of columns or expressions selected in the SELECT clause. */
     private List<String> selectedColumns = new ArrayList<>();
+
+    /** List of conditions found in the WHERE clause. */
     private List<String> whereConditions = new ArrayList<>();
+
+    /** List of JOIN conditions as they appear in the query. */
     private List<String> joinConditions = new ArrayList<>();
+
+    /** List of columns or expressions in the GROUP BY clause. */
     private List<String> groupByColumns = new ArrayList<>();
+
+    /** List of columns or expressions in the ORDER BY clause. */
     private List<String> orderByColumns = new ArrayList<>();
+
+    /** Condition from the HAVING clause, if present. */
     private String havingCondition = null;
+
+    /** Limit value from the LIMIT clause, if present. */
     private Integer limitValue = null;
 
+    /**
+     * Analyzes a SQL SELECT statement and extracts its components.
+     * <p>
+     * This method parses the provided SQL string, extracts all relevant components
+     * (tables, columns, conditions, etc.), generates a natural language description,
+     * and returns an immutable result object containing all the analysis data.
+     * </p>
+     *
+     * <p>
+     * The internal state is automatically reset before each analysis, so the same
+     * analyzer instance can be reused for multiple queries.
+     * </p>
+     *
+     * @param sql the SQL SELECT statement to analyze (must be a valid SELECT query)
+     * @return a {@link SqlAnalysisResult} object containing all extracted information
+     * @throws JSQLParserException if the SQL cannot be parsed (invalid syntax)
+     * @throws IllegalArgumentException if the statement is not a SELECT statement
+     * @see SqlAnalysisResult
+     */
     public SqlAnalysisResult analyze(String sql) throws JSQLParserException {
         reset();
 
@@ -49,6 +120,13 @@ public class SqlAnalyzer {
         );
     }
 
+    /**
+     * Resets all internal state to prepare for a new analysis.
+     * <p>
+     * Clears all collections and nullifies optional fields. This method is
+     * automatically called at the beginning of each {@link #analyze(String)} call.
+     * </p>
+     */
     private void reset() {
         tables.clear();
         tableColumns.clear();
@@ -61,6 +139,16 @@ public class SqlAnalyzer {
         limitValue = null;
     }
 
+    /**
+     * Processes a SELECT statement and extracts all its components.
+     * <p>
+     * This method traverses the SQL Abstract Syntax Tree (AST) and extracts:
+     * FROM items, JOINs, SELECT items, WHERE conditions, GROUP BY, HAVING,
+     * ORDER BY, and LIMIT clauses.
+     * </p>
+     *
+     * @param select the parsed SELECT statement to process
+     */
     private void processSelect(Select select) {
         PlainSelect plainSelect = (PlainSelect) select.getSelectBody();
 
@@ -128,6 +216,11 @@ public class SqlAnalyzer {
         }
     }
 
+    /**
+     * Processes a FROM item (table or subquery) and extracts table information.
+     *
+     * @param fromItem the FROM item to process (can be a Table or subquery)
+     */
     private void processFromItem(FromItem fromItem) {
         if (fromItem instanceof Table) {
             Table table = (Table) fromItem;
@@ -143,6 +236,11 @@ public class SqlAnalyzer {
         }
     }
 
+    /**
+     * Processes a SELECT item and extracts column information.
+     *
+     * @param selectItem the SELECT item to process (column, expression, or wildcard)
+     */
     private void processSelectItem(SelectItem<?> selectItem) {
         if (selectItem instanceof SelectItem) {
             Expression expr = selectItem.getExpression();
@@ -160,6 +258,15 @@ public class SqlAnalyzer {
         }
     }
 
+    /**
+     * Recursively extracts column references from an expression.
+     * <p>
+     * This method traverses expression trees (functions, binary expressions, etc.)
+     * to find all column references and add them to the table-column mapping.
+     * </p>
+     *
+     * @param expr the expression to analyze
+     */
     private void extractColumnsFromExpression(Expression expr) {
         if (expr instanceof Column) {
             addTableColumn((Column) expr);
@@ -184,11 +291,21 @@ public class SqlAnalyzer {
         }
     }
 
+    /**
+     * Processes a WHERE clause expression and extracts condition information.
+     *
+     * @param expr the WHERE expression to process
+     */
     private void processWhereExpression(Expression expr) {
         whereConditions.add(expr.toString());
         extractColumnsFromExpression(expr);
     }
 
+    /**
+     * Adds a column to the table-column mapping.
+     *
+     * @param column the column to add
+     */
     private void addTableColumn(Column column) {
         String tableName = column.getTable() != null ? column.getTable().getName() : "unknown";
         String columnName = column.getColumnName();
@@ -197,6 +314,16 @@ public class SqlAnalyzer {
         tableColumns.get(tableName).add(columnName);
     }
 
+    /**
+     * Generates a human-readable English description of the SQL query.
+     * <p>
+     * The description summarizes what the query does, including what columns
+     * are selected, from which tables, with what conditions, joins, grouping,
+     * ordering, and limits.
+     * </p>
+     *
+     * @return a natural language description of the query
+     */
     private String generateDescription() {
         StringBuilder desc = new StringBuilder();
 

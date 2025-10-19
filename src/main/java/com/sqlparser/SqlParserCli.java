@@ -7,8 +7,47 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+/**
+ * Command-line interface for the SQL Parser application.
+ * <p>
+ * This class provides the main entry point for running SQL analysis from the command line.
+ * It supports reading SQL files, parsing them, and displaying analysis results in various
+ * output formats.
+ * </p>
+ *
+ * <h2>Usage:</h2>
+ * <pre>
+ * java -jar sqlparser-all-1.0.0.jar &lt;file.sql&gt; [options]
+ * </pre>
+ *
+ * <h2>Options:</h2>
+ * <ul>
+ *   <li><code>--help, -h</code> - Show help message</li>
+ *   <li><code>--version, -v</code> - Show version information</li>
+ *   <li><code>--examples</code> - Run built-in SQL examples</li>
+ *   <li><code>--verbose</code> - Show SQL query and full analysis</li>
+ *   <li><code>--quiet, -q</code> - Only show English description</li>
+ * </ul>
+ *
+ * <h2>Examples:</h2>
+ * <pre>
+ * java -jar sqlparser-all-1.0.0.jar query.sql
+ * java -jar sqlparser-all-1.0.0.jar query.sql --verbose
+ * java -jar sqlparser-all-1.0.0.jar --examples
+ * </pre>
+ *
+ * @author SQL Parser Team
+ * @version 1.0.0
+ * @see SqlAnalyzer
+ * @see SqlAnalysisResult
+ */
 public class SqlParserCli {
 
+    /**
+     * Main entry point for the CLI application.
+     *
+     * @param args command-line arguments
+     */
     public static void main(String[] args) {
         if (args.length == 0) {
             printUsage();
@@ -57,6 +96,15 @@ public class SqlParserCli {
         }
     }
 
+    /**
+     * Parses a SQL file and displays the analysis results.
+     *
+     * @param filePath path to the SQL file to analyze
+     * @param verbose if true, shows the SQL query along with full analysis
+     * @param quiet if true, only shows the English description
+     * @throws IOException if the file cannot be read
+     * @throws JSQLParserException if the SQL cannot be parsed
+     */
     private static void parseFile(String filePath, boolean verbose, boolean quiet) throws IOException, JSQLParserException {
         Path path = Paths.get(filePath);
 
@@ -100,6 +148,12 @@ public class SqlParserCli {
         }
     }
 
+    /**
+     * Runs a series of built-in SQL examples to demonstrate the parser's capabilities.
+     * <p>
+     * Examples include simple SELECT, JOINs, aggregation, multiple JOINs, and subqueries.
+     * </p>
+     */
     private static void runExamples() {
         SqlAnalyzer analyzer = new SqlAnalyzer();
 
@@ -139,6 +193,13 @@ public class SqlParserCli {
         analyzeSql(analyzer, "Example 5: Subquery", sql5);
     }
 
+    /**
+     * Analyzes a SQL query and prints the results with a title.
+     *
+     * @param analyzer the SqlAnalyzer instance to use
+     * @param title descriptive title for the example
+     * @param sql the SQL query to analyze
+     */
     private static void analyzeSql(SqlAnalyzer analyzer, String title, String sql) {
         System.out.println("\n" + "=".repeat(80));
         System.out.println(title);
@@ -158,6 +219,9 @@ public class SqlParserCli {
         }
     }
 
+    /**
+     * Prints the usage information and help message to the console.
+     */
     private static void printUsage() {
         System.out.println("SQL Parser - Analyze SQL SELECT statements");
         System.out.println();

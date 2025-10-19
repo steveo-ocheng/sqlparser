@@ -2,8 +2,43 @@ package com.sqlparser;
 
 import net.sf.jsqlparser.JSQLParserException;
 
+/**
+ * Example application demonstrating programmatic usage of the SQL Parser.
+ * <p>
+ * This class shows how to use the {@link SqlAnalyzer} API in Java code to analyze
+ * various types of SQL queries. It includes examples of simple SELECT statements,
+ * JOINs, aggregations, subqueries, and complex expressions.
+ * </p>
+ *
+ * <p>
+ * This is an alternative to {@link SqlParserCli}, which is the command-line interface.
+ * This class is intended for developers who want to integrate SQL parsing into their
+ * own Java applications.
+ * </p>
+ *
+ * <h2>Usage:</h2>
+ * <pre>
+ * // Run with Gradle
+ * ./gradlew run -PmainClass=com.sqlparser.SqlParserApp
+ *
+ * // Or compile and run directly
+ * javac -cp lib/* src/main/java/com/sqlparser/*.java
+ * java -cp .:lib/* com.sqlparser.SqlParserApp
+ * </pre>
+ *
+ * @author SQL Parser Team
+ * @version 1.0.0
+ * @see SqlAnalyzer
+ * @see SqlAnalysisResult
+ * @see SqlParserCli
+ */
 public class SqlParserApp {
 
+    /**
+     * Main entry point that runs several SQL analysis examples.
+     *
+     * @param args command-line arguments (not used)
+     */
     public static void main(String[] args) {
         SqlAnalyzer analyzer = new SqlAnalyzer();
 
@@ -55,6 +90,13 @@ public class SqlParserApp {
         analyzeSql(analyzer, "Example 7: Complex Expressions", sql7);
     }
 
+    /**
+     * Helper method to analyze a SQL query and print the results.
+     *
+     * @param analyzer the SqlAnalyzer instance to use
+     * @param title descriptive title for the example
+     * @param sql the SQL query to analyze
+     */
     private static void analyzeSql(SqlAnalyzer analyzer, String title, String sql) {
         System.out.println("\n" + "=".repeat(80));
         System.out.println(title);
