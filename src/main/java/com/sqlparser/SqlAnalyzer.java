@@ -5,7 +5,7 @@ import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.*;
 import net.sf.jsqlparser.expression.*;
-import net.sf.jsqlparser.expression.operators.relational.*;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 
@@ -150,7 +150,7 @@ public class SqlAnalyzer {
      * @param select the parsed SELECT statement to process
      */
     private void processSelect(Select select) {
-        PlainSelect plainSelect = (PlainSelect) select.getSelectBody();
+        PlainSelect plainSelect = select.getPlainSelect();
 
         // Process FROM clause
         if (plainSelect.getFromItem() != null) {
@@ -161,7 +161,7 @@ public class SqlAnalyzer {
         if (plainSelect.getJoins() != null) {
             for (Join join : plainSelect.getJoins()) {
                 processFromItem(join.getRightItem());
-                if (join.getOnExpression() != null) {
+                if (join.getOnExpressions() != null && !join.getOnExpressions().isEmpty()) {
                     joinConditions.add(join.toString());
                 }
             }
@@ -169,7 +169,7 @@ public class SqlAnalyzer {
 
         // Process SELECT items
         if (plainSelect.getSelectItems() != null) {
-            for (SelectItem selectItem : plainSelect.getSelectItems()) {
+            for (SelectItem<?> selectItem : plainSelect.getSelectItems()) {
                 processSelectItem(selectItem);
             }
         }
@@ -180,17 +180,13 @@ public class SqlAnalyzer {
         }
 
         // Process GROUP BY
-        if (plainSelect.getGroupBy() != null) {
-            List<?> groupByExprs = plainSelect.getGroupBy().getGroupByExpressions();
-            if (groupByExprs != null) {
-                for (Object obj : groupByExprs) {
-                    if (obj instanceof Expression) {
-                        Expression expr = (Expression) obj;
-                        groupByColumns.add(expr.toString());
-                        if (expr instanceof Column) {
-                            addTableColumn((Column) expr);
-                        }
-                    }
+        if (plainSelect.getGroupBy() != null && plainSelect.getGroupBy().getGroupByExpressionList() != null) {
+            ExpressionList<?> groupByList = plainSelect.getGroupBy().getGroupByExpressionList();
+            for (int i = 0; i < groupByList.size(); i++) {
+                Expression expr = groupByList.get(i);
+                groupByColumns.add(expr.toString());
+                if (expr instanceof Column) {
+                    addTableColumn((Column) expr);
                 }
             }
         }
@@ -273,13 +269,9 @@ public class SqlAnalyzer {
         } else if (expr instanceof Function) {
             Function func = (Function) expr;
             if (func.getParameters() != null) {
-                List<?> paramList = func.getParameters().getExpressions();
-                if (paramList != null) {
-                    for (Object obj : paramList) {
-                        if (obj instanceof Expression) {
-                            extractColumnsFromExpression((Expression) obj);
-                        }
-                    }
+                ExpressionList<?> params = func.getParameters();
+                for (int i = 0; i < params.size(); i++) {
+                    extractColumnsFromExpression(params.get(i));
                 }
             }
         } else if (expr instanceof BinaryExpression) {
